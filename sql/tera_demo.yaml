@@ -1,0 +1,19 @@
+# Tera 模板引擎高级用法示例
+
+if_else: |
+  select * from user
+  {% if name %}where name = '{{ name }}'{% else %}where 1=1{% endif %}
+
+for_list: |
+  select * from user where id in (
+    {%- for id in ids -%}
+      {{ id }}{%- if not loop.last %},{% endif %}
+    {%- endfor -%}
+  )
+
+complex: |
+  update user set
+  {% for k, v in data %}
+    {{ k }} = '{{ v }}'{% if not loop.last %}, {% endif %}
+  {% endfor %}
+  where id = {{ user_id }}

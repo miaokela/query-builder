@@ -1,0 +1,39 @@
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "query-builder"
+version = "0.1.0"
+description = "A secure SQL query builder for Python using Rust and pyo3. Supports dynamic templates with safety checks against SQL injection."
+requires-python = ">=3.7"
+authors = [
+    {name = "缪克拉", email = "2972799448@qq.com"}
+]
+readme = "README.md"
+license = {file = "LICENSE"}
+keywords = ["sql", "query", "builder", "security", "rust", "pyo3"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS",
+    "Operating System :: MacOS :: MacOS X",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8", 
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Rust",
+    "Topic :: Database",
+    "Topic :: Security",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.urls]
+Homepage = "https://github.com/miaokela/query-builder"
+Repository = "https://github.com/miaokela/query-builder"
+Documentation = "https://github.com/miaokela/query-builder#readme"
+"Bug Tracker" = "https://github.com/miaokela/query-builder/issues"

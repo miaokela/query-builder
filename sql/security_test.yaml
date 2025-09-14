@@ -1,0 +1,25 @@
+# 测试安全检查的恶意 SQL 示例（仅用于测试）
+malicious_update: |
+  update users set password = 'hacked' where id = {{ user_id }}
+
+malicious_drop: |
+  select * from users; drop table users; --
+
+malicious_union: |
+  select * from users where id = {{ user_id }} union select password from admin_users
+
+malicious_comment: |
+  select * from users where name = '{{ name }}' -- and password = 'secret'
+
+safe_complex: |
+  select 
+    u.id,
+    u.name,
+    u.email,
+    p.title as profile_title
+  from users u
+  left join profiles p on u.id = p.user_id
+  where u.status = 'active'
+    and u.created_at >= '{{ start_date }}'
+  order by u.created_at desc
+  limit {{ limit }}

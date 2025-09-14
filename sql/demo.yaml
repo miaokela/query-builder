@@ -1,0 +1,16 @@
+# 插值示例
+simple: |
+  select * from user where id = {{ user_id }}
+
+# 条件渲染示例（tinytemplate 语法有限，仅支持 if-else 变量存在判断）
+with_cond: |
+  select * from user
+  {{ if name }}where name = '{{ name }}'{{ else }}where 1=1{{ endif }}
+
+# 多变量插值
+multi: |
+  update user set age = {{ age }}, city = '{{ city }}' where id = {{ user_id }}
+
+# 列表插值（tinytemplate 不支持循环，需拼接字符串传入）
+list_in: |
+  select * from user where id in ({{ ids }})

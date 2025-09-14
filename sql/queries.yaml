@@ -1,0 +1,40 @@
+# 仅查询语句示例
+user_list: |
+  select * from users where status = 'active'
+
+user_by_id: |
+  select id, name, email from users where id = {{ user_id }}
+
+user_search: |
+  select * from users 
+  where 1=1
+  {% if name %}
+    and name like '%{{ name }}%'
+  {% endif %}
+  {% if email %}
+    and email = '{{ email }}'
+  {% endif %}
+  {% if age_min %}
+    and age >= {{ age_min }}
+  {% endif %}
+
+user_in_list: |
+  select * from users 
+  where id in (
+    {%- for id in user_ids -%}
+      {{ id }}{%- if not loop.last %},{% endif %}
+    {%- endfor -%}
+  )
+
+order_summary: |
+  select 
+    u.name,
+    count(o.id) as order_count,
+    sum(o.amount) as total_amount
+  from users u
+  left join orders o on u.id = o.user_id
+  {% if start_date %}
+  where o.created_at >= '{{ start_date }}'
+  {% endif %}
+  group by u.id, u.name
+  order by total_amount desc

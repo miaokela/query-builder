@@ -1,0 +1,2 @@
+fetch_name: |
+  select * from user where id = {{ user_id }}
