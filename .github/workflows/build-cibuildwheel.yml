@@ -1,0 +1,110 @@
+name: Build and Release (cibuildwheel)
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type (test or release)'
+        required: false
+        default: 'test'
+        type: choice
+        options:
+        - test
+        - release
+
+jobs:
+  build:
+    name: Build wheels on ${{ matrix.platform_name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Windows x64
+          - os: windows-latest
+            platform_name: "Windows x64"
+            cibw_archs: "AMD64"
+          # macOS Intel (x86_64)
+          - os: macos-12
+            platform_name: "macOS Intel"
+            cibw_archs: "x86_64"
+          # macOS Apple Silicon (ARM64)
+          - os: macos-14
+            platform_name: "macOS Apple Silicon"
+            cibw_archs: "arm64"
+          # Linux x64
+          - os: ubuntu-latest
+            platform_name: "Linux x64"
+            cibw_archs: "x86_64"
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install cibuildwheel
+      run: python -m pip install cibuildwheel
+
+    - name: Build wheels
+      env:
+        CIBW_BUILD: "cp38-* cp39-* cp310-* cp311-* cp312-*"
+        CIBW_SKIP: "*-win32 *-manylinux_i686 *-musllinux_*"
+        CIBW_ARCHS: ${{ matrix.cibw_archs }}
+        # Windows特定设置
+        CIBW_ENVIRONMENT_WINDOWS: >
+          PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1
+          PYO3_NO_PYTHON=1
+        # 使用maturin构建
+        CIBW_BUILD_FRONTEND: "build"
+        CIBW_BEFORE_BUILD: "pip install maturin"
+        CIBW_BUILD_VERBOSITY: 1
+      run: python -m cibuildwheel --output-dir wheelhouse
+
+    - name: Upload wheels
+      uses: actions/upload-artifact@v4
+      with:
+        name: wheels-${{ matrix.platform_name }}-${{ matrix.cibw_archs }}
+        path: wheelhouse/*.whl
+
+  publish:
+    name: Release to PyPI
+    runs-on: ubuntu-latest
+    if: "startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.event.inputs.build_type == 'release')"
+    needs: [build]
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      
+      - name: List downloaded wheels by platform
+        run: |
+          echo "=== All downloaded wheel files ==="
+          find dist -name "*.whl" -type f | sort
+          echo ""
+          echo "=== Platform breakdown ==="
+          echo "Windows wheels:"
+          find dist -name "*win*.whl" -o -name "*windows*.whl" | wc -l
+          echo "macOS Intel wheels:"
+          find dist -name "*x86_64*darwin*.whl" | wc -l
+          echo "macOS Apple Silicon wheels:"
+          find dist -name "*aarch64*darwin*.whl" -o -name "*arm64*darwin*.whl" | wc -l
+          echo "Linux wheels:"
+          find dist -name "*linux*.whl" | wc -l
+          echo ""
+          echo "Total wheels: $(find dist -name "*.whl" | wc -l)"
+      
+      - name: Publish to PyPI
+        uses: PyO3/maturin-action@v1
+        env:
+          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        with:
+          command: upload
+          args: --non-interactive --skip-existing dist/*.whl

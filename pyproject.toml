@@ -4,9 +4,9 @@ build-backend = "maturin"
 
 [project]
 name = "query-builder"
-version = "0.1.0"
+version = "0.1.7"
 description = "A secure SQL query builder for Python using Rust and pyo3. Supports dynamic templates with safety checks against SQL injection."
-requires-python = ">=3.7,<3.13"
+requires-python = ">=3.8,<3.13"
 authors = [
     {name = "缪克拉", email = "2972799448@qq.com"}
 ]
@@ -20,7 +20,6 @@ classifiers = [
     "Operating System :: MacOS",
     "Operating System :: MacOS :: MacOS X",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8", 
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
@@ -31,6 +30,25 @@ classifiers = [
     "Topic :: Security",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
+
+[tool.maturin]
+python-source = "python"
+module-name = "query_builder"
+features = ["pyo3/extension-module", "pyo3/abi3-py38"]
+
+[tool.cibuildwheel]
+# 构建所有Python版本
+build = ["cp38-*", "cp39-*", "cp310-*", "cp311-*", "cp312-*"]
+# 跳过32位和musllinux
+skip = ["*-win32", "*-manylinux_i686", "*-musllinux_*"]
+# 全局环境变量
+environment = {PYO3_USE_ABI3_FORWARD_COMPATIBILITY = "1", PYO3_NO_PYTHON = "1"}
+build-verbosity = "1"
+
+[tool.cibuildwheel.windows]
+# Windows特定配置
+environment = {PYO3_USE_ABI3_FORWARD_COMPATIBILITY = "1", PYO3_NO_PYTHON = "1"}
+before-build = "pip install maturin"
 
 [project.urls]
 Homepage = "https://github.com/miaokela/query-builder"
