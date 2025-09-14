@@ -1,6 +1,6 @@
 [package]
 name = "query-builder"
-version = "0.1.0"
+version = "0.1.5"
 edition = "2021"
 description = "A SQL query builder for Python using pyo3."
 
@@ -9,7 +9,7 @@ name = "query_builder"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.21", features = ["extension-module"] }
+pyo3 = { version = "0.21", features = ["extension-module", "abi3-py38"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.9"
 toml = "0.8"
