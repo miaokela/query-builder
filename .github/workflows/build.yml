@@ -50,14 +50,16 @@ jobs:
         
     - name: Install Python (Windows specific)
       if: matrix.os == 'windows-latest'
+      shell: pwsh
       run: |
         # 确保Python开发库可用
         python -m pip install --upgrade pip
         # 检查Python安装
-        python -c "import sys; print(f'Python: {sys.executable}')"
-        python -c "import sysconfig; print(f'Lib path: {sysconfig.get_path(\"stdlib\")}')"
-        # 设置Windows构建环境变量
-        echo "PYO3_CROSS_LIB_DIR=$(python -c 'import sysconfig; print(sysconfig.get_path(\"stdlib\"))')" >> $GITHUB_ENV
+        python -c "import sys; print('Python:', sys.executable)"
+        python -c "import sysconfig; print('Lib path:', sysconfig.get_path('stdlib'))"
+        # 设置Windows构建环境变量 
+        $libPath = python -c "import sysconfig; print(sysconfig.get_path('stdlib'))"
+        echo "PYO3_CROSS_LIB_DIR=$libPath" >> $env:GITHUB_ENV
 
     - name: Build wheels
       uses: PyO3/maturin-action@v1
