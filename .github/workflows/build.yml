@@ -17,11 +17,28 @@ on:
 
 jobs:
   build:
-    name: Build wheels on ${{ matrix.os }}
+    name: Build wheels on ${{ matrix.platform_name }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-20.04, windows-2019, macos-11]
+        include:
+          # Windows x64
+          - os: windows-latest
+            platform_name: "Windows x64"
+            target: x86_64-pc-windows-msvc
+          # macOS Intel (x86_64)
+          - os: macos-12
+            platform_name: "macOS Intel"
+            target: x86_64-apple-darwin
+          # macOS Apple Silicon (ARM64)
+          - os: macos-14
+            platform_name: "macOS Apple Silicon"
+            target: aarch64-apple-darwin
+          # Linux x64
+          - os: ubuntu-latest
+            platform_name: "Linux x64"
+            target: x86_64-unknown-linux-gnu
 
     steps:
     - uses: actions/checkout@v4
@@ -29,6 +46,7 @@ jobs:
     - name: Build wheels
       uses: PyO3/maturin-action@v1
       with:
+        target: ${{ matrix.target }}
         args: --release --out dist --interpreter 3.8 3.9 3.10 3.11 3.12
         sccache: 'true'
         manylinux: auto
@@ -36,11 +54,11 @@ jobs:
     - name: Upload wheels
       uses: actions/upload-artifact@v4
       with:
-        name: wheels-${{ matrix.os }}
+        name: wheels-${{ matrix.platform_name }}-${{ matrix.target }}
         path: dist/*.whl
 
   publish:
-    name: Release
+    name: Release to PyPI
     runs-on: ubuntu-latest
     if: "startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.event.inputs.build_type == 'release')"
     needs: [build]
@@ -51,10 +69,22 @@ jobs:
           path: dist
           merge-multiple: true
       
-      - name: List downloaded files
+      - name: List downloaded wheels by platform
         run: |
-          echo "Downloaded files:"
-          find dist -name "*.whl" -type f
+          echo "=== All downloaded wheel files ==="
+          find dist -name "*.whl" -type f | sort
+          echo ""
+          echo "=== Platform breakdown ==="
+          echo "Windows wheels:"
+          find dist -name "*win*.whl" -o -name "*windows*.whl" | wc -l
+          echo "macOS Intel wheels:"
+          find dist -name "*x86_64*darwin*.whl" | wc -l
+          echo "macOS Apple Silicon wheels:"
+          find dist -name "*aarch64*darwin*.whl" -o -name "*arm64*darwin*.whl" | wc -l
+          echo "Linux wheels:"
+          find dist -name "*linux*.whl" | wc -l
+          echo ""
+          echo "Total wheels: $(find dist -name "*.whl" | wc -l)"
       
       - name: Publish to PyPI
         uses: PyO3/maturin-action@v1
