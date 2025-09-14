@@ -57,7 +57,7 @@ jobs:
         PYO3_USE_ABI3_FORWARD_COMPATIBILITY: "1"
       with:
         target: ${{ matrix.target }}
-        args: --release --out dist --interpreter 3.8 3.9 3.10 3.11 3.12 --abi3-python-version 3.8
+        args: --release --out dist --interpreter 3.8 3.9 3.10 3.11 3.12
         sccache: 'true'
         manylinux: auto
 
