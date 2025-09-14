@@ -60,8 +60,11 @@ jobs:
         CIBW_ENVIRONMENT_WINDOWS: >
           PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1
           PYO3_NO_PYTHON=1
-        # 使用maturin构建
-        CIBW_BUILD_FRONTEND: "build"
+        # 全局环境设置
+        CIBW_ENVIRONMENT: >
+          PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1
+          PYO3_NO_PYTHON=1
+        # 构建前安装maturin
         CIBW_BEFORE_BUILD: "pip install maturin"
         CIBW_BUILD_VERBOSITY: 1
       run: python -m cibuildwheel --output-dir wheelhouse
