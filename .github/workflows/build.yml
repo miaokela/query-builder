@@ -14,15 +14,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # macOS
-          - os: macos-latest
+          # macOS builds
+          - os: macos-12  # x86_64
             target: x86_64-apple-darwin
-          - os: macos-latest  
+          - os: macos-14  # ARM64 (M1/M2)
             target: aarch64-apple-darwin
-          # Windows
+          # Windows x64
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-          # Linux
+          # Linux x64
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
 
@@ -43,13 +43,10 @@ jobs:
         
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
-      with:
-        targets: ${{ matrix.target }}
 
     - name: Build wheels
       uses: PyO3/maturin-action@v1
       with:
-        target: ${{ matrix.target }}
         args: --release --out dist
         sccache: 'true'
         manylinux: auto
@@ -57,7 +54,7 @@ jobs:
     - name: Upload wheels
       uses: actions/upload-artifact@v4
       with:
-        name: wheels-${{ matrix.target }}
+        name: wheels-${{ matrix.os }}
         path: dist
 
   test:
