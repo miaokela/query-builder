@@ -30,7 +30,7 @@ impl PyQueryBuilder {
         self.sql_path.clone()
     }
 
-    fn build(&self, _py: Python, key: &str, kwargs: Option<&PyDict>) -> PyResult<String> {
+    fn build(&self, _py: Python, key: &str, kwargs: Option<&Bound<'_, PyDict>>) -> PyResult<String> {
         let sql_dir = self.sql_path.as_ref()
             .ok_or_else(|| pyo3::exceptions::PyValueError::new_err("sql_path must be set before building queries"))?;
         
@@ -142,7 +142,7 @@ fn validate_sql_security(sql: &str) -> PyResult<()> {
 }
 
 #[pymodule]
-fn query_builder(_py: Python, m: &PyModule) -> PyResult<()> {
+fn query_builder(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyQueryBuilder>()?;
     m.add_function(wrap_pyfunction!(builder, m)?)?;
     Ok(())

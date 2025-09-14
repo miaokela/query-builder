@@ -18,3 +18,5 @@ regex = "1.10"
 
 [package.metadata.maturin]
 name = "query_builder"
+# 强制使用abi3模式
+python-source = "registry+index"

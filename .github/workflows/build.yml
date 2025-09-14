@@ -60,12 +60,16 @@ jobs:
         # 设置Windows构建环境变量 
         $libPath = python -c "import sysconfig; print(sysconfig.get_path('stdlib'))"
         echo "PYO3_CROSS_LIB_DIR=$libPath" >> $env:GITHUB_ENV
+        # 强制使用abi3模式，避免链接特定Python版本库
+        echo "PYO3_NO_PYTHON=1" >> $env:GITHUB_ENV
 
     - name: Build wheels
       uses: PyO3/maturin-action@v1
       env:
         # Windows特定环境变量
         PYO3_USE_ABI3_FORWARD_COMPATIBILITY: "1"
+        # 强制abi3模式避免链接python3x.lib
+        PYO3_NO_PYTHON: "1"
       with:
         target: ${{ matrix.target }}
         args: --release --out dist --interpreter 3.8 3.9 3.10 3.11 3.12
