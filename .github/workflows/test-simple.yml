@@ -28,7 +28,8 @@ jobs:
     
     - name: Test import
       run: |
-        maturin develop
+        # Install the built wheel instead of using maturin develop
+        pip install target/wheels/*.whl
         python -c "import query_builder; print('✅ Package works!')"
     
     - name: Show files
