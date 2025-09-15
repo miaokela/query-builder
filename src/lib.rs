@@ -11,8 +11,12 @@ use regex::Regex;
 ///
 /// This class allows you to build SQL queries from YAML template files using the Tera
 /// templating engine, with automatic security validation to prevent SQL injection attacks.
+/// Templates are loaded into memory for better performance.
 struct PyQueryBuilder {
     sql_path: Option<String>,
+    /// In-memory storage for all loaded SQL templates
+    /// Key format: "file.template" (e.g., "users.select_by_id")
+    templates: HashMap<String, String>,
 }
 
 #[pymethods]
@@ -20,10 +24,11 @@ impl PyQueryBuilder {
     #[new]
     /// Initialize a new PyQueryBuilder instance.
     ///
-    /// You must set the sql_path before building queries.
+    /// You must set the sql_path and call load_all_templates() before building queries.
     fn new() -> Self {
         Self {
             sql_path: None,
+            templates: HashMap::new(),
         }
     }
 
@@ -45,35 +50,88 @@ impl PyQueryBuilder {
         self.sql_path.clone()
     }
 
+    /// Load all SQL templates from the configured directory into memory.
+    ///
+    /// This method scans all YAML files in the sql_path directory and loads
+    /// all templates with keys in format "filename.template_key".
+    ///
+    /// Raises:
+    ///     ValueError: If sql_path is not set or directory doesn't exist.
+    ///     IOError: If files cannot be read or parsed.
+    ///
+    /// Example:
+    ///     >>> builder = PyQueryBuilder()
+    ///     >>> builder.sql_path = "./sql"
+    ///     >>> builder.load_all_templates()  # Loads all *.yaml files
+    fn load_all_templates(&mut self) -> PyResult<()> {
+        let sql_dir = self.sql_path.as_ref()
+            .ok_or_else(|| pyo3::exceptions::PyValueError::new_err("sql_path must be set before loading templates"))?;
+
+        let sql_path = Path::new(sql_dir);
+        if !sql_path.exists() {
+            return Err(pyo3::exceptions::PyValueError::new_err(format!("SQL directory does not exist: {}", sql_dir)));
+        }
+
+        // Clear existing templates
+        self.templates.clear();
+
+        // Read all .yaml files in the directory
+        let entries = fs::read_dir(sql_path)
+            .map_err(|e| pyo3::exceptions::PyIOError::new_err(format!("Failed to read directory {}: {}", sql_dir, e)))?;
+
+        for entry in entries {
+            let entry = entry.map_err(|e| pyo3::exceptions::PyIOError::new_err(e.to_string()))?;
+            let path = entry.path();
+            
+            if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("yaml") {
+                let filename = path.file_stem()
+                    .and_then(|s| s.to_str())
+                    .ok_or_else(|| pyo3::exceptions::PyValueError::new_err("Invalid filename"))?;
+
+                // Load YAML file
+                let sql_map = load_yaml(&path)?;
+                
+                // Add all templates with filename.key format
+                for (template_key, template_content) in sql_map {
+                    let full_key = format!("{}.{}", filename, template_key);
+                    self.templates.insert(full_key, template_content);
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     /// Build a SQL query from a template using the provided parameters.
     ///
+    /// Templates must be loaded into memory first using load_all_templates().
+    ///
     /// Args:
-    ///     key (str): Template key in format "file.template" or just "template" 
-    ///               (searches in queries.yaml by default).
+    ///     key (str): Template key in format "file.template" (e.g., "users.select_by_id").
     ///     **kwargs: Template variables to substitute in the query.
     ///
     /// Returns:
     ///     str: The rendered SQL query string.
     ///
     /// Raises:
-    ///     ValueError: If sql_path is not set, template syntax is invalid, 
+    ///     ValueError: If templates not loaded, template syntax is invalid, 
     ///                or SQL injection is detected.
-    ///     KeyError: If the specified template key is not found.
+    ///     KeyError: If the specified template key is not found in memory.
     ///
     /// Example:
     ///     >>> builder = PyQueryBuilder()
     ///     >>> builder.sql_path = "/path/to/sql/templates"
+    ///     >>> builder.load_all_templates()
     ///     >>> sql = builder.build("users.select_by_id", user_id=123)
     ///     >>> print(sql)
     ///     SELECT * FROM users WHERE id = 123
     fn build(&self, _py: Python, key: &str, kwargs: Option<&Bound<'_, PyDict>>) -> PyResult<String> {
-        let sql_dir = self.sql_path.as_ref()
-            .ok_or_else(|| pyo3::exceptions::PyValueError::new_err("sql_path must be set before building queries"))?;
-        
-        let (file_path, template_key) = resolve_key(sql_dir, key)?;
-        let sql_map = load_yaml(&file_path)?;
-        let template = sql_map.get(&template_key)
-            .ok_or_else(|| pyo3::exceptions::PyKeyError::new_err(format!("Key '{}' not found in {:?}", template_key, file_path)))?;
+        // Get template from memory
+        let template = self.templates.get(key)
+            .ok_or_else(|| pyo3::exceptions::PyKeyError::new_err(
+                format!("Template '{}' not found in memory. Available templates: {:?}", 
+                    key, self.templates.keys().collect::<Vec<_>>())
+            ))?;
         
         let mut tera = Tera::default();
         tera.add_raw_template("tpl", template).map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
@@ -104,6 +162,22 @@ impl PyQueryBuilder {
         validate_sql_security(&rendered)?;
         
         Ok(rendered)
+    }
+
+    /// Get all available template keys loaded in memory.
+    ///
+    /// Returns:
+    ///     List[str]: List of all loaded template keys in format "file.template".
+    ///
+    /// Example:
+    ///     >>> builder = PyQueryBuilder()
+    ///     >>> builder.sql_path = "./sql"
+    ///     >>> builder.load_all_templates()
+    ///     >>> keys = builder.get_template_keys()
+    ///     >>> print(keys)
+    ///     ['users.select_by_id', 'users.list_all', 'orders.recent']
+    fn get_template_keys(&self) -> Vec<String> {
+        self.templates.keys().cloned().collect()
     }
 }
 
