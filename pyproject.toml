@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "query-builder-tool"
-version = "0.1.15"
+version = "0.1.16"
 description = "A secure SQL query builder for Python using Rust and pyo3. Supports dynamic templates with safety checks against SQL injection."
 requires-python = ">=3.8,<3.13"
 authors = [
@@ -34,6 +34,8 @@ classifiers = [
 [tool.maturin]
 module-name = "query_builder"
 features = ["pyo3/extension-module", "pyo3/abi3-py38"]
+# Include type stub file in the package
+include = ["query_builder.pyi"]
 
 [tool.cibuildwheel]
 # 构建所有Python版本
