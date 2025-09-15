@@ -102,13 +102,14 @@ impl PyQueryBuilder {
         Ok(())
     }
 
-    /// Build a SQL query from a template using the provided parameters.
+    /// Build a SQL query from a template key with parameters.
     ///
     /// Templates must be loaded into memory first using load_all_templates().
     ///
     /// Args:
     ///     key (str): Template key in format "file.template" (e.g., "users.select_by_id").
-    ///     **kwargs: Template variables to substitute in the query.
+    ///     params (Optional[Dict]): Template variables as a dictionary (old API).
+    ///     **kwargs: Template variables to substitute in the query (new API).
     ///
     /// Returns:
     ///     str: The rendered SQL query string.
@@ -122,10 +123,14 @@ impl PyQueryBuilder {
     ///     >>> builder = PyQueryBuilder()
     ///     >>> builder.sql_path = "/path/to/sql/templates"
     ///     >>> builder.load_all_templates()
+    ///     >>> # New API (recommended)
     ///     >>> sql = builder.build("users.select_by_id", user_id=123)
+    ///     >>> # Old API (backward compatibility)
+    ///     >>> sql = builder.build("users.select_by_id", {"user_id": 123})
     ///     >>> print(sql)
     ///     SELECT * FROM users WHERE id = 123
-    fn build(&self, _py: Python, key: &str, kwargs: Option<&Bound<'_, PyDict>>) -> PyResult<String> {
+    #[pyo3(signature = (key, params=None, **kwargs))]
+    fn build(&self, key: &str, params: Option<&Bound<'_, PyDict>>, kwargs: Option<&Bound<'_, PyDict>>) -> PyResult<String> {
         // Get template from memory
         let template = self.templates.get(key)
             .ok_or_else(|| pyo3::exceptions::PyKeyError::new_err(
@@ -137,7 +142,29 @@ impl PyQueryBuilder {
         tera.add_raw_template("tpl", template).map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
         let mut context = Context::new();
         
+        // Handle both old (params dict) and new (kwargs) API styles
+        if let Some(params) = params {
+            // Old API: build("template", {"key": "value"})
+            for (k, v) in params.iter() {
+                let key_str = k.extract::<String>()?;
+                if let Ok(val) = v.extract::<String>() {
+                    context.insert(&key_str, &val);
+                } else if let Ok(val) = v.extract::<i64>() {
+                    context.insert(&key_str, &val);
+                } else if let Ok(val) = v.extract::<f64>() {
+                    context.insert(&key_str, &val);
+                } else if let Ok(val) = v.extract::<Vec<String>>() {
+                    context.insert(&key_str, &val);
+                } else if let Ok(val) = v.extract::<Vec<i64>>() {
+                    context.insert(&key_str, &val);
+                } else if let Ok(val) = v.extract::<HashMap<String, String>>() {
+                    context.insert(&key_str, &val);
+                }
+            }
+        }
+        
         if let Some(kwargs) = kwargs {
+            // New API: build("template", key="value")
             for (k, v) in kwargs.iter() {
                 let key_str = k.extract::<String>()?;
                 if let Ok(val) = v.extract::<String>() {
