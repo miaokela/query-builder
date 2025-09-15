@@ -29,10 +29,6 @@ jobs:
           - os: windows-latest
             platform_name: "Windows x64"
             target: x86_64-pc-windows-msvc
-          # macOS Intel (x86_64)
-          - os: macos-12
-            platform_name: "macOS Intel"
-            target: x86_64-apple-darwin
           # macOS Apple Silicon (ARM64)
           - os: macos-14
             platform_name: "macOS Apple Silicon"
@@ -84,17 +80,15 @@ jobs:
           echo "=== All downloaded wheel files ==="
           find dist -name "*.whl" -type f | sort
           echo ""
-          echo "=== Platform breakdown ==="
+          echo "=== Platform breakdown (3 platforms) ==="
           echo "Windows wheels:"
           find dist -name "*win*.whl" -o -name "*windows*.whl" | wc -l
-          echo "macOS Intel wheels:"
-          find dist -name "*x86_64*darwin*.whl" | wc -l
           echo "macOS Apple Silicon wheels:"
           find dist -name "*aarch64*darwin*.whl" -o -name "*arm64*darwin*.whl" | wc -l
           echo "Linux wheels:"
           find dist -name "*linux*.whl" | wc -l
           echo ""
-          echo "Total wheels: $(find dist -name "*.whl" | wc -l)"
+          echo "Total wheels (expected: 15 = 3 platforms × 5 Python versions): $(find dist -name "*.whl" | wc -l)"
       
       - name: Publish to PyPI
         uses: PyO3/maturin-action@v1
