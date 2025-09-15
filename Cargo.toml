@@ -1,6 +1,6 @@
 [package]
-name = "py-query-builder"
-version = "0.1.14"
+name = "query-builder-tool"
+version = "0.1.15"
 edition = "2021"
 description = "A SQL query builder for Python using pyo3."
 

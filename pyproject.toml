@@ -3,8 +3,8 @@ requires = ["maturin>=1.0,<2.0"]
 build-backend = "maturin"
 
 [project]
-name = "py-query-builder"
-version = "0.1.14"
+name = "query-builder-tool"
+version = "0.1.15"
 description = "A secure SQL query builder for Python using Rust and pyo3. Supports dynamic templates with safety checks against SQL injection."
 requires-python = ">=3.8,<3.13"
 authors = [
